@@ -45,6 +45,7 @@ docker run hello-world
 Install Git in WSL:
 ```wsl
 sudo apt install git -y
+sudo apt install git-gui -y
 ```
 
 ```wsl
@@ -75,6 +76,17 @@ wsl --unregister Ubuntu
 
 
 
+Now you can code by typing (this installs and opens visual studio code):
+```
+code .
+```
+
+
+
+And you might want to try git gui by:
+```
+git gui
+```
 
 
 
