@@ -5,25 +5,48 @@ This is a helper project for Docker. Use it as reference.
 Table of Contents:
 - Installation
     - Windows
-        - [Installation via WSL \& without Docker Desktop](#installation-via-wsl--without-docker-desktop)
-        - [Using Docker Desktop](#installation-via-docker-desktop)
+        - [Using Docker Desktop](#installation-via-docker-desktop-windows)
+        - [Installation via WSL \& without Docker Desktop](#installation-via-wsl--without-docker-desktop-windows)
     - Linux
-        - [Using apt / package manager](#installation-via-apt--package-manager)
+        - [Quick Installation via distro package](#quick-installation-via-distro-package-linux)
+        - [Official Install (via Docker repository)](#official-installation-via-docker-repository-linux)
 - [Concept](#concept)
 - [Why do I need this in Artificial Intelligence?](#why-do-i-need-this-in-artificial-intelligence)
 - [Container Management](#container-management)
 - [Image Management](#image-management)
 - [Disk/Volumne Mounting](#mounting-a-disk--volume)
 - [Container Lifecycle and Data](#container-lifecycle-and-data)
+- [Networks](#networks)
 - [Templates](#templates)
-
 
 
 <br><br>
 
 ---
 
-### Installation via WSL & without Docker Desktop
+### Installation via Docker Desktop [Windows]
+
+1. Download Docker Desktop for Windows from the official site:
+https://docs.docker.com/desktop/install/windows
+2. Run the installer and follow the steps.
+    - Make sure WSL 2 is enabled (recommended backend).
+    - During setup, select whether you want Docker Desktop to use WSL 2 or Hyper-V.
+3. After installation, start Docker Desktop from the Start Menu.
+4. Verify the installation:
+    - Open your cmd or powershell
+    - Type:
+        ```bash
+        docker --version
+        docker run hello-world
+        ```
+    - You should see a confirmation message that Docker is running.
+
+
+<br><br>
+
+---
+
+### Installation via WSL & without Docker Desktop [Windows]
 
 First install WSL:
 ```cmd
@@ -102,21 +125,72 @@ git gui
 ```
 
 
-<br><br>
-
----
-
-### Installation via Docker Desktop
-
-
 
 <br><br>
 
 ---
 
-### Installation via apt / package manager
+### Quick Installation via distro package [Linux]
+
+* Uses your Linux distribution’s default repositories.
+* Pros: fast and easy
+* Cons: often outdated, may miss features
+
+<br>
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install docker.io -y
+```
 
 
+<br><br>
+
+---
+
+### Official Installation via Docker repository [Linux]
+
+* Installs Docker CE directly from Docker’s official repo.
+* Example: add Docker GPG key + repo, then `sudo apt install docker-ce`
+* Pros: latest stable version, full feature set (Buildx, Compose plugin)
+* Cons: slightly more setup steps
+
+<br>
+
+1. Update your package index and install required prerequisites:
+    ```bash
+    sudo apt update
+    sudo apt install -y ca-certificates curl gnupg lsb-release
+    ```
+2. (Not always needed) Add Docker’s official GPG key:
+    ```bash
+    sudo mkdir -p /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+    sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    ```
+3. Set up the Docker repository:
+    ```bash
+    echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+        https://download.docker.com/linux/ubuntu \
+        $(lsb_release -cs) stable" | \
+        sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    ```
+4. Install Docker Engine, CLI, and related tools:
+    ```bash
+    sudo apt update
+    sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    ```
+5. Verify installation:
+    ```bash
+    docker --version
+    sudo docker run hello-world
+    ```
+6. (Optional) Run Docker without `sudo`:
+    ```bash
+    sudo usermod -aG docker $USER
+    newgrp docker
+    ```
 
 <br><br>
 
@@ -194,6 +268,38 @@ Docker helps you:
 - Show logs of a container:
     ```bash
     docker logs <container_name_or_id>
+    ```
+- Delete all stopped container, dangling images (without tags), unused networks and the build cache:
+    ```bash
+    docker system prune
+    ```
+- Delete all stopped container, unused images, unused networks and the build cache:
+    ```bash
+    docker system prune -a
+    ```
+- Delete all unused volumes (not container uses the volume):
+    ```bash
+    docker volume prune
+    ```
+- Show all Volumes:
+    ```bash
+    docker volume ls
+    ```
+- Check if a specific volumne is currently in use:
+    ```bash
+    docker ps --filter volume=<volumename>
+    ```
+- Show used Storage:
+    ```bash
+    docker system df
+    ```
+- Show used Storage including volumes and build cache:
+    ```bash
+    docker system df -v
+    ```
+- Show all networks:
+    ```bash
+    docker network ls
     ```
 
 > On Windows you have the **Docker Desktop** running in the background
@@ -366,6 +472,10 @@ After you might want to build + run the image or upload your image to the docker
 - List images:
     ```bash
     docker images
+    ```
+- List all images:
+    ```bash
+    docker images -a
     ```
 - Remove image:
     ```bash
@@ -544,6 +654,314 @@ When you run a container, there are three ways commands can be executed:
     ```
     - Gives full control over the container.
     - Useful for debugging or exploring the environment.
+
+<br><br>
+
+---
+
+### Networks
+
+In Docker, **networks** define how containers communicate with each other and with the outside world. You can think of them as **virtual LANs** that Docker creates and manages.
+
+<br><br>
+
+**Types of Docker Networks** (Drivers)
+
+1. **bridge** (default for user-defined containers)
+   * Containers on the same bridge network can talk to each other using their container name as hostname.
+   * If you don’t specify a network, Docker usually attaches containers to `bridge`.
+   * Example:
+     ```bash
+     docker run -d --name web --network mynet nginx
+     ```
+2. **host**
+   * The container shares the host machine’s networking stack.
+   * No network isolation – the container uses the host’s IP and ports.
+   * Only available on **Linux**, not on Windows with Docker Desktop.
+3. **none**
+   * The container has no network access.
+   * Useful for security or testing.
+4. **overlay** (used in Docker Swarm / multi-host setups)
+   * Connects containers across multiple Docker hosts.
+   * Enables distributed applications.
+5. **macvlan**
+   * Gives a container its own MAC address and makes it appear as a physical device on the LAN.
+   * Useful when containers need to be accessed directly like physical machines.
+
+
+<br><br>
+
+**Check your networks**<br>
+
+List all networks:
+```bash
+docker network ls
+```
+
+Inspect a network (see connected containers, IP ranges, etc.):
+```bash
+docker network inspect <network_name>
+```
+
+<br>
+
+**Create and remove networks**
+```bash
+# Create a user-defined bridge network
+docker network create mynet
+
+# Create with a specific driver
+docker network create --driver bridge mynet
+docker network create --driver overlay myoverlaynet
+
+# Create with custom subnet + gateway
+docker network create \
+  --subnet=192.168.100.0/24 \
+  --gateway=192.168.100.1 \
+  mycustomnet
+
+# Remove a network
+docker network rm <network_name>
+
+# Remove ALL unused networks
+docker network prune
+```
+
+<br>
+
+**Connect & disconnect containers**
+```bash
+# Run a container and attach it to a specific network
+docker run -d --name web --network mynet nginx
+
+# Connect an existing container to a network
+docker network connect mynet web
+
+# Disconnect a container from a network
+docker network disconnect mynet web
+```
+
+<br>
+
+**Debug networking**
+
+List all networks:
+```bash
+# Exec into a container and test DNS / connectivity
+docker exec -it <container> ping <other_container_name>
+docker exec -it <container> curl http://<other_container_name>:80
+
+# Show container network settings (IP, MAC, etc.)
+docker inspect <container> | grep -A5 "Networks"
+```
+
+<br><br>
+
+**Networking Options in `docker run`**
+
+* Choose the network
+    ```bash
+    docker run --network <network_name> ...
+    ```
+    * Attach container to a specific network (default is `bridge`).
+    * Example:
+        ```bash
+        docker run -d --name web --network mynet nginx
+        ```
+* Set network alias
+    ```bash
+    docker run --network-alias <alias> ...
+    ```
+    * Adds an extra DNS name for the container inside the network.
+    * Example:
+        ```bash
+        docker run -d --name db \
+          --network mynet \
+          --network-alias mysql \
+          mysql:8
+        ```
+        → Now other containers can connect using db or mysql.
+* Static IP (only on user-defined bridge networks)
+    ```bash
+    docker run --network mynet --ip 172.18.0.50 ...
+    ```
+    * Requires that `mynet` has a defined subnet (when created with `--subnet`).
+    * Example:
+        ```bash
+        docker network create \
+          --subnet=172.18.0.0/16 \
+          mynet
+        docker run -d --name web --network mynet --ip 172.18.0.50 nginx
+        ```
+* Host networking
+    ```bash
+    docker run --network host ...
+    ```
+    * Container shares the host’s network stack.
+    * Useful for performance or apps needing raw host access.
+    * **Linux-only**, not available with Docker Desktop on Windows/Mac.
+* No networking
+    ```bash
+    docker run --network none ...
+    ```
+    * Container has no network access.
+    * Only loopback interface works.
+* Custom DNS settings
+    ```bash
+    docker run \
+      --dns 8.8.8.8 \
+      --dns 1.1.1.1 \
+      --dns-search mydomain.local \
+      --dns-option timeout:3 \
+      ...
+    ```
+    * Override DNS servers, search domains, and resolver options.
+* Extra hosts (custom /etc/hosts entries)
+    ```bash
+    docker run --add-host myapp.local:192.168.1.100 ...
+    ```
+    * Adds a static entry to /etc/hosts inside the container.
+* Expose and publish ports
+    ```bash
+    docker run -p 8080:80 ...
+    docker run -p 127.0.0.1:8080:80 ...
+    ```
+    * `-p host_port:container_port` → publish container port on the host.
+    * `-P` (capital P) → publish all EXPOSEd ports to random host ports.
+* Link containers (legacy, replaced by networks)
+    ```bash
+    docker run --link <container_name>:alias ...
+    ```
+    * Deprecated (use `--network` and `--network-alias` instead).
+
+
+<br><br>
+
+**Using Docker Compose**
+
+With **Docker Compose**, you can define containers **and their networks** in a single YAML file, instead of typing long `docker run` commands.
+
+Here’s the **Nginx + MySQL example** from below (see **Example**) but this time using `docker-compose.yml`:
+
+
+**`docker-compose.yml`**
+
+```yaml
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8
+    container_name: mydb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+    networks:
+      - mynet
+    # Optional: give db an alias
+    networks:
+      mynet:
+        aliases:
+          - mysql
+
+  web:
+    image: nginx:latest
+    container_name: web
+    restart: always
+    ports:
+      - "8080:80"   # host:container
+    networks:
+      - mynet
+
+networks:
+  mynet:
+    driver: bridge
+```
+
+
+How docker compose works
+
+* Both services (`db` and `web`) are connected to the **same user-defined network** `mynet`.
+* The MySQL container is accessible by:
+  * Its **service name**: `db`
+  * Its **network alias**: `mysql`
+* The Nginx container is accessible via `http://localhost:8080` on your host.
+* Inside the network, Nginx can reach MySQL using:
+  ```bash
+  mysql -h db -uroot -psecret
+  ```
+  or
+  ```bash
+  mysql -h mysql -uroot -psecret
+  ```
+
+Commands to run docker compose
+
+```bash
+# Start in background
+docker-compose up -d
+
+# See logs
+docker-compose logs -f
+
+# List running containers
+docker-compose ps
+
+# Stop and remove containers/networks
+docker-compose down
+```
+
+
+With `docker-compose`, you don’t need to manually run `docker network create` or attach containers — Compose handles it.
+
+
+
+<br><br>
+
+**Why networks matter**
+
+* **Isolation**: Containers in different networks can’t talk to each other by default.
+* **Service discovery**: Containers on the same network can use names (`web`, `db`) instead of IPs.
+* **Flexibility**: You can design microservice-style apps with multiple networks (e.g., a `frontend` network and a `backend` network).
+
+
+<br><br>
+
+**Example**
+
+1. Create a user-defined network
+    ```bash
+    docker network create mynet
+    ```
+2. Run MySQL in that network
+    ```bash
+    docker run -d \
+      --name mydb \
+      --network mynet \
+      -e MYSQL_ROOT_PASSWORD=secret \
+      mysql:8
+    ```
+    - `--name mydb` → container name is mydb (this becomes the hostname in the network)
+    - `--network mynet` → attach container to the custom network
+    - `MYSQL_ROOT_PASSWORD` → set root password
+3. Run Nginx in the same network
+    ```bash
+    docker run -d \
+      --name web \
+      --network mynet \
+      nginx
+    ```
+4. Test connectivity
+    ```bash
+    docker exec -it web bash
+    apt-get update && apt-get install -y iputils-ping mysql-client
+    ping mydb
+    mysql -h mydb -uroot -psecret
+    ```
+5. See the network
+    ```bash
+    docker network inspect mynet
+    ```
 
 
 <br><br>
